@@ -1,10 +1,10 @@
-# Cache fix for yfinance (add this BEFORE importing yfinance)
-from pathlib import Path
-import appdirs as ad
+# # Cache fix for yfinance (add this BEFORE importing yfinance)
+# from pathlib import Path
+# import appdirs as ad
 
-CACHE_DIR = ".cache"
-ad.user_cache_dir = lambda *args: CACHE_DIR
-Path(CACHE_DIR).mkdir(exist_ok=True)
+# CACHE_DIR = ".cache"
+# ad.user_cache_dir = lambda *args: CACHE_DIR
+# Path(CACHE_DIR).mkdir(exist_ok=True)
 
 import pandas as pd
 import numpy as np
