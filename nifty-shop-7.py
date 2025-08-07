@@ -1,3 +1,11 @@
+# Cache fix for yfinance (add this BEFORE importing yfinance)
+from pathlib import Path
+import appdirs as ad
+
+CACHE_DIR = ".cache"
+ad.user_cache_dir = lambda *args: CACHE_DIR
+Path(CACHE_DIR).mkdir(exist_ok=True)
+
 import pandas as pd
 import numpy as np
 import yfinance as yf
@@ -15,9 +23,10 @@ class NiftyShopStrategy:
     Implementation of the NIFTY SHOP Strategy as explained by FabTrader
     """
     
-    def __init__(self, capital_per_trade=15000, target_percent=5.0):
+    def __init__(self, capital_per_trade=15000, target_percent=9.0, stop_loss_percent=9.0):
         self.capital_per_trade = capital_per_trade
         self.target_percent = target_percent / 100  # Convert to decimal
+        self.stop_loss_percent = stop_loss_percent / 100  # Convert to decimal
         self.portfolio = {}
         self.cash = 0
         self.cash_deployed = 0
@@ -35,7 +44,7 @@ class NiftyShopStrategy:
             'MID150BEES.NS',     # Midcap ETF
             'HDFCSML250.NS',     # HDFC Smallcap 250 ETF
 
-            #'BANKBEES.NS',       # Bank BeES - High liquidity sectoral ETF
+            'BANKBEES.NS',       # Bank BeES - High liquidity sectoral ETF
             'ITBEES.NS',         # IT BeES - High liquidity tech ETF
             'PHARMABEES.NS',     # Pharma BeES
 
@@ -43,10 +52,10 @@ class NiftyShopStrategy:
             'FMCGIETF.NS',       # FMCG ETF
             'TOP10ADD.NS',       # Top 10 ETF
 
-            'MAFANG.NS',         # FANG+ ETF
-            # 'MON100.NS',         # Motilal Oswal NASDAQ 100 ETF
+            #'MAFANG.NS',         # FANG+ ETF
+            'MON100.NS',         # Motilal Oswal NASDAQ 100 ETF
 
-            #'GOLDBEES.NS',       # Gold BeES - Commodity exposure
+            'GOLDBEES.NS',       # Gold BeES - Commodity exposure
             'SILVERBEES.NS',     # Silver BeES
             
             'SENSEXIETF.NS',     # Sensex ETF
@@ -57,31 +66,28 @@ class NiftyShopStrategy:
             'TOP100CASE.NS',
 
             # Smart Beta / Factor-Based ETFs
-            'NIFTYQLITY.NS',
-            'MOM30IETF.NS',
-            'VAL30IETF.NS',
-            'LOWVOLIETF.NS',
-            'ALPHAETF.NS',
-            'ALPL30IETF.NS',
-            'HDFCGROWTH.NS',
-            'HDFCQUAL.NS', 
-            'MULTICAP.NS',
+            'SBIETFQLTY.NS', #SBI Nifty 200 Quality 30 ETF
+            'MOM30IETF.NS', #MOM 30 ETF
+            'VAL30IETF.NS', #Value 30 ETF
+            'LOWVOLIETF.NS', #Low Volatility 30 ETF
+            #'ALPHAETF.NS',
+            'ALPL30IETF.NS', #ALPL 30 ETF
+            'HDFCGROWTH.NS', #HDFC Growth ETF
+            'HDFCQUAL.NS', #HDFC Quality ETF
+            'MULTICAP.NS', #Multi Cap ETF
             
             # Sectoral/Thematic ETFs
-            'MODEFENCE.NS',
-            'EVINDIA.NS',
-            'MOREALTY.NS',
-            'AUTOBEES.NS',
-            'MOHEALTH.NS',
-            'MAKEINDIA.NS',
-            'PVTBANIETF.NS',
+            'MODEFENCE.NS', #Mode Fence ETF
+            'EVINDIA.NS', #EV India ETF
+            'MOREALTY.NS', #Morealty ETF
+            'AUTOBEES.NS', #Auto BeES ETF
+            'MOHEALTH.NS', #MoHealth ETF
+            'MAKEINDIA.NS', #Make India ETF
+            'PVTBANIETF.NS', #PVT Bani ETF
+            'SHARIABEES.NS', #Sharia BeES ETF
 
             # International Diversification
-            'HNGSNGBEES.NS',
-
-            # # Commodities (Inflation Hedge)
-            # 'GOLDBEES.NS',
-            # 'SILVERBEES.NS'
+            'HNGSNGBEES.NS' #HNGS NGB BeES ETF
         ]
 
     def get_nifty50_data(self, start_date, end_date):
@@ -146,6 +152,9 @@ class NiftyShopStrategy:
 
                 # Calculate 49-day EMA
                 df_copy['MA49'] = df_copy['Close'].ewm(span=49, adjust=False).mean()
+
+                # # Calculate 54-day EMA
+                # df_copy['MA54'] = df_copy['Close'].ewm(span=54, adjust=False).mean()
                 
                 # Calculate distance from MA
                 df_copy['Distance_from_MA'] = (df_copy['Close'] - df_copy['MA49']) / df_copy['MA49']
@@ -368,8 +377,11 @@ class NiftyShopStrategy:
                         # else:
                         #     prev_ema49 = ema49
                         #     prev_price = current_price
+
+                        #profit_last_buy = (current_price - position['last_buy_price']) / position['last_buy_price']
+                        #rsi = signals[symbol].loc[date, 'RSI_14']
                         
-                        if profit_pct >= self.target_percent and current_price < ema49:
+                        if (profit_pct >= self.target_percent and current_price < ema49) or (profit_pct <= -self.stop_loss_percent):
                             # Sell the position
                             sell_value = position['quantity'] * current_price
                             self.cash += sell_value
@@ -380,6 +392,7 @@ class NiftyShopStrategy:
                             
                             self.trades.append({
                                 'date': date,
+                                'first_buy_date': position['first_buy_date'],
                                 'symbol': symbol,
                                 'action': 'SELL',
                                 'price': current_price,
@@ -390,7 +403,7 @@ class NiftyShopStrategy:
                             })
                             
                             symbols_to_remove.append(symbol)
-                            self.buy_signal_stocks.remove(symbol)
+                            #self.buy_signal_stocks.remove(symbol)
                     except Exception as e:
                         continue
             
@@ -443,7 +456,8 @@ class NiftyShopStrategy:
                                     'total_cost': cost,
                                     'last_buy_date': date,
                                     'last_buy_price': price,
-                                    'average_count': 0
+                                    'average_count': 0,
+                                    'first_buy_date': date
                                 }
                                 
                                 self.trades.append({
@@ -474,7 +488,7 @@ class NiftyShopStrategy:
                             quantity = int(self.capital_per_trade / current_price)
                             old_position = self.portfolio[symbol]
 
-                            if self.cash >= self.capital_per_trade and quantity > 0: # and old_position['average_count'] < 25:
+                            if self.cash >= self.capital_per_trade and quantity > 0 and old_position['average_count'] < 25:
                                 cost = quantity * current_price
                                 self.cash -= cost
                                 self.cash_deployed += cost
@@ -493,7 +507,8 @@ class NiftyShopStrategy:
                                     'total_cost': new_total_cost,
                                     'last_buy_date': date,
                                     'last_buy_price': current_price,
-                                    'average_count': new_average_count
+                                    'average_count': new_average_count,
+                                    'first_buy_date': old_position['first_buy_date']
                                 }
                             
                                 self.trades.append({
@@ -604,12 +619,13 @@ def main():
     # Sidebar for parameters
     st.sidebar.header("Strategy Parameters")
     
-    start_date = st.sidebar.date_input("Start Date", datetime.now() - timedelta(days=1824))
+    start_date = st.sidebar.date_input("Start Date", datetime.now() - timedelta(days=1097))
     end_date = st.sidebar.date_input("End Date", datetime.now())
     
-    initial_capital = st.sidebar.number_input("Initial Capital (₹)", value=500000, step=10000)
+    initial_capital = st.sidebar.number_input("Initial Capital (₹)", value=1200000, step=10000)
     capital_per_trade = st.sidebar.number_input("Capital per Trade (₹)", value=10000, step=1000)
     target_percent = st.sidebar.number_input("Target Profit (%)", value=9.00, step=0.1)
+    stop_loss_percent = st.sidebar.number_input("Stop Loss (%)", value=1000.00, step=0.1)
     # averaging_threshold = st.sidebar.number_input("Averaging Threshold (%)", value=3.50, step=0.1)
     
     if st.sidebar.button("🚀 Run Backtest", type="primary"):
@@ -617,6 +633,7 @@ def main():
             strategy = NiftyShopStrategy(
                 capital_per_trade=capital_per_trade,
                 target_percent=target_percent,
+                stop_loss_percent=stop_loss_percent,
                 #averaging_threshold=averaging_threshold
             )
             
@@ -789,6 +806,7 @@ def main():
                             
                             positions_data.append({
                                 'Symbol': symbol.replace('.NS', ''),
+                                'First Buy Date': position['first_buy_date'],
                                 'Quantity': position['quantity'],
                                 'Avg Price': f"₹{position['avg_price']:.2f}",
                                 'Current Price': f"₹{current_price:.2f}",
@@ -814,6 +832,14 @@ def main():
                         st.warning("Could not display position details due to data issues")
                 else:
                     st.info("No current positions")
+
+                # Buy Signal Symbol
+                st.header("Buy Signal Symbol")
+                if strategy.buy_signal_stocks:
+                    #buy_signals = [symbol for symbol, signal in strategy.buy_signal_stocks.items() if signal == 'BUY']
+                    st.write(strategy.buy_signal_stocks)
+                else:
+                    st.info("No buy signals")
 
             else:
                 st.error("Backtesting failed. Please check your parameters and try again.")
