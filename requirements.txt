@@ -4,3 +4,4 @@ pandas
 plotly
 pandas_ta
 ta
+setuptools
