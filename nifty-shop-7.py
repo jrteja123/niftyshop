@@ -374,16 +374,6 @@ class NiftyShopStrategy:
                     benchmark_portfolio_value += benchmark_position['quantity'] * nifty_price
                 except Exception as e:
                     pass
-
-            ema49 = signals[symbol].loc[date, 'MA9']
-            ema49 = signals[symbol].loc[date, 'MA49']
-            idx = signals[symbol].index.get_loc(date)
-            if idx > 0:
-                prev_ema9 = signals[symbol].iloc[idx - 1]['MA9']
-                prev_ema49 = signals[symbol].iloc[idx - 1]['MA49']
-            else:
-                prev_ema9 = ema9
-                prev_ema49 = ema49
             
             # SELL LOGIC
             symbols_to_remove = []
@@ -404,6 +394,16 @@ class NiftyShopStrategy:
 
                         #profit_last_buy = (current_price - position['last_buy_price']) / position['last_buy_price']
                         #rsi = signals[symbol].loc[date, 'RSI_14']
+
+                        ema9 = signals[symbol].loc[date, 'MA9']
+                        ema49 = signals[symbol].loc[date, 'MA49']
+                        idx = signals[symbol].index.get_loc(date)
+                        if idx > 0:
+                            prev_ema9 = signals[symbol].iloc[idx - 1]['MA9']
+                            prev_ema49 = signals[symbol].iloc[idx - 1]['MA49']
+                        else:
+                            prev_ema9 = ema9
+                            prev_ema49 = ema49
                         
                         if prev_ema9 > prev_ema49 and emap < ema49: ##ema (profit_pct >= self.target_percent and current_price < ema49) or (profit_pct <= -self.stop_loss_percent):
                             # Sell the position
@@ -461,6 +461,17 @@ class NiftyShopStrategy:
                     ##buy_condition_matches = self.find_buy_condition_matches(signals, symbol, date)
                     # if symbol == 'AUTOBEES.NS':
                     #     print("Outside buy", date, symbol, buy_condition_matches)
+
+                    ema9 = signals[symbol].loc[date, 'MA9']
+                    ema49 = signals[symbol].loc[date, 'MA49']
+                    idx = signals[symbol].index.get_loc(date)
+                    if idx > 0:
+                        prev_ema9 = signals[symbol].iloc[idx - 1]['MA9']
+                        prev_ema49 = signals[symbol].iloc[idx - 1]['MA49']
+                    else:
+                        prev_ema9 = ema9
+                        prev_ema49 = ema49
+                        
                     if prev_ema9 < prev_ema49 and emap > ema49:
                         ##self.buy_signal_stocks.remove(symbol)
                         if symbol not in held_symbols and self.cash >= self.capital_per_trade:
