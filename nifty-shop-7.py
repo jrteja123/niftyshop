@@ -405,7 +405,7 @@ class NiftyShopStrategy:
                             prev_ema9 = ema9
                             prev_ema49 = ema49
                         
-                        if prev_ema9 > prev_ema49 and emap < ema49: ##ema (profit_pct >= self.target_percent and current_price < ema49) or (profit_pct <= -self.stop_loss_percent):
+                        if prev_ema9 > prev_ema49 and ema9 < ema49: ##ema (profit_pct >= self.target_percent and current_price < ema49) or (profit_pct <= -self.stop_loss_percent):
                             # Sell the position
                             sell_value = position['quantity'] * current_price
                             self.cash += sell_value
@@ -456,7 +456,7 @@ class NiftyShopStrategy:
             
             #Actual buy
             averaging_stocks = {}
-            for symbol in signals.items():
+            for symbol in signals:
                 if date in signals[symbol].index:
                     ##buy_condition_matches = self.find_buy_condition_matches(signals, symbol, date)
                     # if symbol == 'AUTOBEES.NS':
