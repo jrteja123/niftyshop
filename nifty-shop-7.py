@@ -461,7 +461,7 @@ class NiftyShopStrategy:
                     ##buy_condition_matches = self.find_buy_condition_matches(signals, symbol, date)
                     # if symbol == 'AUTOBEES.NS':
                     #     print("Outside buy", date, symbol, buy_condition_matches)
-                    if prev_ema9 < prev_ema49 and emap > ema49::
+                    if prev_ema9 < prev_ema49 and emap > ema49:
                         ##self.buy_signal_stocks.remove(symbol)
                         if symbol not in held_symbols and self.cash >= self.capital_per_trade:
                             price = signals[symbol].loc[date, 'Close']
