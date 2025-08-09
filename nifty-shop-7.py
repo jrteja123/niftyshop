@@ -374,6 +374,16 @@ class NiftyShopStrategy:
                     benchmark_portfolio_value += benchmark_position['quantity'] * nifty_price
                 except Exception as e:
                     pass
+
+            ema49 = signals[symbol].loc[date, 'MA9']
+            ema49 = signals[symbol].loc[date, 'MA49']
+            idx = signals[symbol].index.get_loc(date)
+            if idx > 0:
+                prev_ema9 = signals[symbol].iloc[idx - 1]['MA9']
+                prev_ema49 = signals[symbol].iloc[idx - 1]['MA49']
+            else:
+                prev_ema9 = ema9
+                prev_ema49 = ema49
             
             # SELL LOGIC
             symbols_to_remove = []
@@ -382,7 +392,7 @@ class NiftyShopStrategy:
                     try:
                         current_price = signals[symbol].loc[date, 'Close']
                         profit_pct = (current_price - position['avg_price']) / position['avg_price']
-                        ema49 = signals[symbol].loc[date, 'MA49']
+                        ##ema49 = signals[symbol].loc[date, 'MA49']
                         
                         # idx = signals[symbol].index.get_loc(date)
                         # if idx > 0:
@@ -395,7 +405,7 @@ class NiftyShopStrategy:
                         #profit_last_buy = (current_price - position['last_buy_price']) / position['last_buy_price']
                         #rsi = signals[symbol].loc[date, 'RSI_14']
                         
-                        if (profit_pct >= self.target_percent and current_price < ema49) or (profit_pct <= -self.stop_loss_percent):
+                        if prev_ema9 > prev_ema49 and emap < ema49: ##ema (profit_pct >= self.target_percent and current_price < ema49) or (profit_pct <= -self.stop_loss_percent):
                             # Sell the position
                             sell_value = position['quantity'] * current_price
                             self.cash += sell_value
@@ -446,13 +456,13 @@ class NiftyShopStrategy:
             
             #Actual buy
             averaging_stocks = {}
-            for symbol in self.buy_signal_stocks:
+            for symbol in signals.items():
                 if date in signals[symbol].index:
-                    buy_condition_matches = self.find_buy_condition_matches(signals, symbol, date)
+                    ##buy_condition_matches = self.find_buy_condition_matches(signals, symbol, date)
                     # if symbol == 'AUTOBEES.NS':
                     #     print("Outside buy", date, symbol, buy_condition_matches)
-                    if buy_condition_matches:
-                        self.buy_signal_stocks.remove(symbol)
+                    if prev_ema9 < prev_ema49 and emap > ema49::
+                        ##self.buy_signal_stocks.remove(symbol)
                         if symbol not in held_symbols and self.cash >= self.capital_per_trade:
                             price = signals[symbol].loc[date, 'Close']
                             quantity = int(self.capital_per_trade / price)
