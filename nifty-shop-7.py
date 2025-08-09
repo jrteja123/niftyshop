@@ -472,7 +472,7 @@ class NiftyShopStrategy:
                         prev_ema9 = ema9
                         prev_ema49 = ema49
                         
-                    if prev_ema9 < prev_ema49 and emap > ema49:
+                    if prev_ema9 < prev_ema49 and ema9 > ema49:
                         ##self.buy_signal_stocks.remove(symbol)
                         if symbol not in held_symbols and self.cash >= self.capital_per_trade:
                             price = signals[symbol].loc[date, 'Close']
