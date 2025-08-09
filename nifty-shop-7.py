@@ -108,19 +108,6 @@ class NiftyShopStrategy:
                         ticker_data.columns = ticker_data.columns.droplevel(1)
                     data[symbol] = ticker_data
                     successful_downloads.append(symbol)
-
-                # Create CSV in memory
-                csv_buffer = io.StringIO()
-                ticker_data.to_csv(csv_buffer)
-
-                # Add a download button for each symbol
-                st.download_button(
-                    label=f"📥 Download {symbol} CSV",
-                    data=csv_buffer.getvalue(),
-                    file_name=f"{symbol}.csv",
-                    mime="text/csv"
-                )
-                
                 progress_bar.progress((i + 1) / len(self.selected_etfs))
             except Exception as e:
                 st.warning(f"Failed to download {symbol}: {str(e)}")
@@ -136,6 +123,18 @@ class NiftyShopStrategy:
             nifty_data = yf.download('NIFTYBEES.NS', start=start_date, end=end_date, progress=False)
             if isinstance(nifty_data.columns, pd.MultiIndex):
                 nifty_data.columns = nifty_data.columns.droplevel(1)
+
+            # Create CSV in memory
+            csv_buffer = io.StringIO()
+            nifty_data.to_csv(csv_buffer)
+
+            # Add a download button for each symbol
+            st.download_button(
+                label=f"📥 Download NIFTYBEES CSV",
+                data=csv_buffer.getvalue(),
+                file_name=f"NIFTYBEES.csv",
+                mime="text/csv"
+            )
             return nifty_data
         except Exception as e:
             st.warning(f"Could not download NIFTY benchmark data: {e}")
