@@ -50,10 +50,6 @@ class NiftyShopStrategy:
             'ITBEES.NS',         # IT BeES - High liquidity tech ETF
             'PHARMABEES.NS',     # Pharma BeES
 
-            'DIVOPPBEES.NS',     # Dividend Opportunities BeES
-            'FMCGIETF.NS',       # FMCG ETF
-            'TOP10ADD.NS',       # Top 10 ETF
-
             #'MAFANG.NS',         # FANG+ ETF
             'MON100.NS',         # Motilal Oswal NASDAQ 100 ETF
 
@@ -66,6 +62,9 @@ class NiftyShopStrategy:
 
         self.selected_etfs = self.core_etfs + [
             'TOP100CASE.NS',
+            'DIVOPPBEES.NS',     # Dividend Opportunities BeES
+            'FMCGIETF.NS',       # FMCG ETF
+            'TOP10ADD.NS',       # Top 10 ETF
 
             # Smart Beta / Factor-Based ETFs
             'SBIETFQLTY.NS', #SBI Nifty 200 Quality 30 ETF
