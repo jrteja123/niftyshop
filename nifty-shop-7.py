@@ -237,7 +237,7 @@ class NiftyShopStrategy:
         if symbol in signals and date in signals[symbol].index:
             try:
                 price = signals[symbol].loc[date, 'Close']
-                ema9 = signals[symbol].loc[date, 'MA9']
+                ema9 = signals[symbol].loc[date, 'MA21']
                 rsi = signals[symbol].loc[date, 'RSI_14']
                 idx = signals[symbol].index.get_loc(date)
                 if idx > 0:
