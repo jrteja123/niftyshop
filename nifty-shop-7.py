@@ -160,8 +160,10 @@ class NiftyShopStrategy:
                 # Calculate 21-day EMA
                 df_copy['MA21'] = df_copy['Close'].ewm(span=21, adjust=False).mean()
 
-                # Calculate 34-day EMA
+                # Calculate 21-day EMA
                 df_copy['SMA21'] = df_copy['Close'].rolling(window=21, min_periods=1).mean()
+                # Calculate 100-day EMA
+                df_copy['SMA100'] = df_copy['Close'].rolling(window=100, min_periods=1).mean()
 
                 # Calculate 49-day EMA
                 df_copy['MA49'] = df_copy['Close'].ewm(span=49, adjust=False).mean()
@@ -238,6 +240,7 @@ class NiftyShopStrategy:
             try:
                 price = signals[symbol].loc[date, 'Close']
                 ema9 = signals[symbol].loc[date, 'MA21']
+                sma100 = signals[symbol].loc[date, 'SMA100']
                 rsi = signals[symbol].loc[date, 'RSI_14']
                 idx = signals[symbol].index.get_loc(date)
                 if idx > 0:
@@ -259,7 +262,7 @@ class NiftyShopStrategy:
                 # if symbol == 'AUTOBEES.NS':
                 #     print("Inside", date, symbol, rsi, prev_rsi, price, ema9)
 
-                if rsi > 35 and rsi < 70 and rsi > prev_rsi and price > ema9 and prev_rsi_2 > prev_rsi_4:
+                if rsi > 35 and rsi < 70 and rsi > prev_rsi and price > ema9 and prev_rsi_2 > prev_rsi_4 and sma100 > price:
                     return True
             except Exception as e:
                 print("Error", e)
