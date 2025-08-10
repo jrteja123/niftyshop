@@ -240,7 +240,7 @@ class NiftyShopStrategy:
             try:
                 price = signals[symbol].loc[date, 'Close']
                 ema9 = signals[symbol].loc[date, 'MA9']
-                ema9 = signals[symbol].loc[date, 'MA21']
+                ema21 = signals[symbol].loc[date, 'MA21']
                 #sma100 = signals[symbol].loc[date, 'SMA100']
                 rsi = signals[symbol].loc[date, 'RSI_14']
                 idx = signals[symbol].index.get_loc(date)
