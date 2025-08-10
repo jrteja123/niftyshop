@@ -240,7 +240,7 @@ class NiftyShopStrategy:
             try:
                 price = signals[symbol].loc[date, 'Close']
                 ema9 = signals[symbol].loc[date, 'MA9']
-                #ema21 = signals[symbol].loc[date, 'MA21']
+                ema21 = signals[symbol].loc[date, 'MA21']
                 #sma100 = signals[symbol].loc[date, 'SMA100']
                 rsi = signals[symbol].loc[date, 'RSI_14']
                 idx = signals[symbol].index.get_loc(date)
@@ -264,7 +264,7 @@ class NiftyShopStrategy:
                 #     print("Inside", date, symbol, rsi, prev_rsi, price, ema9)
                 crossover_condition = prev_rsi <= prev_rsi_2 and rsi > prev_rsi
                 #pricecross_cond = (price > ema9 and symbol in self.core_etfs) or (price > ema21 and symbol not in self.core_etfs)
-                if rsi > 35 and rsi < 70 and crossover_condition and prev_rsi_2 > prev_rsi_4 and price > ema9:
+                if rsi > 35 and rsi < 70 and rsi > prev_rsi and prev_rsi_2 > prev_rsi_4 and price > ema21:
                     return True
             except Exception as e:
                 print("Error", e)
