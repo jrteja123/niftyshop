@@ -378,7 +378,7 @@ class NiftyShopStrategy:
             # SELL LOGIC
             symbols_to_remove = []
             for symbol, position in self.portfolio.items():
-                if symbol in signals and date in signals[symbol].index: # and symbol not in self.core_etfs:
+                if symbol in signals and date in signals[symbol].index and symbol not in self.core_etfs:
                     try:
                         current_price = signals[symbol].loc[date, 'Close']
                         profit_pct = (current_price - position['avg_price']) / position['avg_price']
