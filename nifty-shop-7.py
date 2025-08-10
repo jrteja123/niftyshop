@@ -240,7 +240,7 @@ class NiftyShopStrategy:
             try:
                 price = signals[symbol].loc[date, 'Close']
                 ema9 = signals[symbol].loc[date, 'MA21']
-                sma100 = signals[symbol].loc[date, 'SMA100']
+                #sma100 = signals[symbol].loc[date, 'SMA100']
                 rsi = signals[symbol].loc[date, 'RSI_14']
                 idx = signals[symbol].index.get_loc(date)
                 if idx > 0:
@@ -261,8 +261,8 @@ class NiftyShopStrategy:
                 #"""condtion -  rsi > 35 and rsi < 70 and ta.crossover(rsi, rsi[1]) and rsi[2] > rsi[4] and close > ema9 and sma100 > close"""
                 # if symbol == 'AUTOBEES.NS':
                 #     print("Inside", date, symbol, rsi, prev_rsi, price, ema9)
-
-                if rsi > 35 and rsi < 70 and rsi > prev_rsi and price > ema9 and prev_rsi_2 > prev_rsi_4 and sma100 > price:
+                crossover_condition = prev_rsi <= prev_rsi_2 and rsi > prev_rsi
+                if rsi > 35 and rsi < 70 and crossover_condition and prev_rsi_2 > prev_rsi_4 and price > ema9:
                     return True
             except Exception as e:
                 print("Error", e)
