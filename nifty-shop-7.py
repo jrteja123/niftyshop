@@ -264,7 +264,7 @@ class NiftyShopStrategy:
                 #     print("Inside", date, symbol, rsi, prev_rsi, price, ema9)
                 crossover_condition = prev_rsi <= prev_rsi_2 and rsi > prev_rsi
                 #pricecross_cond = (price > ema9 and symbol in self.core_etfs) or (price > ema21 and symbol not in self.core_etfs)
-                if rsi > 35 and rsi < 70 and rsi > prev_rsi and prev_rsi_2 > prev_rsi_4 and price > ema9:
+                if rsi > 35 and rsi < 70 and crossover_condition and prev_rsi_2 > prev_rsi_4 and price > ema9:
                     return True
             except Exception as e:
                 print("Error", e)
