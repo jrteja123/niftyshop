@@ -641,7 +641,7 @@ def main():
     start_date = st.sidebar.date_input("Start Date", datetime.now() - timedelta(days=1097))
     end_date = st.sidebar.date_input("End Date", datetime.now())
     
-    initial_capital = st.sidebar.number_input("Initial Capital (₹)", value=1200000, step=10000)
+    initial_capital = st.sidebar.number_input("Initial Capital (₹)", value=1350000, step=10000)
     capital_per_trade = st.sidebar.number_input("Capital per Trade (₹)", value=10000, step=1000)
     target_percent = st.sidebar.number_input("Target Profit (%)", value=9.00, step=0.1)
     stop_loss_percent = st.sidebar.number_input("Stop Loss (%)", value=1000.00, step=0.1)
