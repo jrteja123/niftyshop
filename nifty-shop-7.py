@@ -594,38 +594,91 @@ class NiftyShopStrategy:
         
         return pd.DataFrame(self.equity_curve), pd.DataFrame(self.benchmark_equity_curve)
     
-    def calculate_metrics(self, equity_curve, initial_capital, cash_deployed):
-        """Calculate performance metrics"""
-        if equity_curve.empty:
-            return {}
+def calculate_metrics(self, equity_curve, initial_capital, cash_deployed):
+    """Calculate performance metrics"""
+    if equity_curve.empty:
+        return {}
+    
+    final_value = equity_curve['portfolio_value'].iloc[-1]
+    total_return = (final_value - initial_capital) / initial_capital
+    
+    # Calculate CAGR
+    days = (equity_curve['date'].iloc[-1] - equity_curve['date'].iloc[0]).days
+    years = days / 365.25
+    cagr = (final_value / initial_capital) ** (1/years) - 1 if years > 0 else 0
+    
+    # Calculate XIRR
+    xirr_value = self._calculate_xirr(equity_curve, initial_capital)
+    
+    # Win rate
+    profitable_trades = [t for t in self.trades if t['action'] == 'SELL' and t['profit_amount'] > 0]
+    total_sell_trades = [t for t in self.trades if t['action'] == 'SELL']
+    win_rate = len(profitable_trades) / len(total_sell_trades) if total_sell_trades else 0
+    
+    # Maximum drawdown
+    equity_curve['rolling_max'] = equity_curve['portfolio_value'].expanding().max()
+    equity_curve['drawdown'] = (equity_curve['portfolio_value'] - equity_curve['rolling_max']) / equity_curve['rolling_max']
+    max_drawdown = equity_curve['drawdown'].min()
+    
+    return {
+        'Total Return': f"{total_return:.2%}",
+        'CAGR': f"{cagr:.2%}",
+        'XIRR': f"{xirr_value:.2%}",
+        'Final Value': f"₹{final_value:,.0f}",
+        'Win Rate': f"{win_rate:.2%}",
+        'Total Trades': len(total_sell_trades),
+        'Max Drawdown': f"{max_drawdown:.2%}",
+        'Current Positions': len(self.portfolio)
+    }
+
+def _calculate_xirr(self, equity_curve, initial_capital):
+    """Calculate XIRR (Extended Internal Rate of Return)"""
+    try:
+        from scipy.optimize import newton
         
+        # Create cash flows list
+        cash_flows = []
+        
+        # Initial investment (negative cash flow)
+        start_date = equity_curve['date'].iloc[0]
+        cash_flows.append((start_date, -initial_capital))
+        
+        # Add any additional cash flows from trades (if you track deposits/withdrawals)
+        # This assumes you might have additional capital deployments tracked in your trades
+        # You can modify this section based on how you track additional investments
+        
+        # For now, we'll use a simplified approach with just initial and final values
+        # If you have intermediate cash flows, add them here:
+        # for trade in self.trades:
+        #     if trade.get('additional_capital'):
+        #         cash_flows.append((trade['date'], -trade['additional_capital']))
+        
+        # Final portfolio value (positive cash flow)
+        end_date = equity_curve['date'].iloc[-1]
         final_value = equity_curve['portfolio_value'].iloc[-1]
-        total_return = (final_value - initial_capital) / initial_capital
+        cash_flows.append((end_date, final_value))
         
-        # Calculate CAGR
+        # Calculate XIRR using Newton's method
+        def npv(rate):
+            return sum([cf / ((1 + rate) ** ((date - cash_flows[0][0]).days / 365.0)) 
+                       for (date, cf) in cash_flows])
+        
+        def npv_derivative(rate):
+            return sum([(-cf * (date - cash_flows).days / 365.0) / 
+                       ((1 + rate) ** ((date - cash_flows).days / 365.0 + 1))
+                       for (date, cf) in cash_flows])
+        
+        # Use Newton's method with derivative for better convergence
+        xirr_rate = newton(npv, 0.1, fprime=npv_derivative, maxiter=100)
+        
+        return xirr_rate
+        
+    except Exception as e:
+        # Fallback to CAGR if XIRR calculation fails
+        print(f"XIRR calculation failed: {e}. Using CAGR as fallback.")
         days = (equity_curve['date'].iloc[-1] - equity_curve['date'].iloc[0]).days
         years = days / 365.25
-        cagr = (final_value / initial_capital) ** (1/years) - 1 if years > 0 else 0
-        
-        # Win rate
-        profitable_trades = [t for t in self.trades if t['action'] == 'SELL' and t['profit_amount'] > 0]
-        total_sell_trades = [t for t in self.trades if t['action'] == 'SELL']
-        win_rate = len(profitable_trades) / len(total_sell_trades) if total_sell_trades else 0
-        
-        # Maximum drawdown
-        equity_curve['rolling_max'] = equity_curve['portfolio_value'].expanding().max()
-        equity_curve['drawdown'] = (equity_curve['portfolio_value'] - equity_curve['rolling_max']) / equity_curve['rolling_max']
-        max_drawdown = equity_curve['drawdown'].min()
-        
-        return {
-            'Total Return': f"{total_return:.2%}",
-            'CAGR': f"{cagr:.2%}",
-            'Final Value': f"₹{final_value:,.0f}",
-            'Win Rate': f"{win_rate:.2%}",
-            'Total Trades': len(total_sell_trades),
-            'Max Drawdown': f"{max_drawdown:.2%}",
-            'Current Positions': len(self.portfolio)
-        }
+        return (equity_curve['portfolio_value'].iloc[-1] / initial_capital) ** (1/years) - 1 if years > 0 else 0
 
 def main():
     st.set_page_config(page_title="NIFTY SHOP Strategy Backtester - 7", layout="wide")
