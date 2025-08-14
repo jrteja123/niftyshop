@@ -608,7 +608,7 @@ class NiftyShopStrategy:
         cagr = (final_value / initial_capital) ** (1/years) - 1 if years > 0 else 0
         
         # Calculate XIRR
-        xirr_value = self._calculate_xirr(equity_curve, initial_capital)
+        xirr_value = self.calculate_xirr_for_curve(equity_curve, initial_capital)
         
         # Win rate
         profitable_trades = [t for t in self.trades if t['action'] == 'SELL' and t['profit_amount'] > 0]
@@ -631,54 +631,40 @@ class NiftyShopStrategy:
             'Current Positions': len(self.portfolio)
         }
     
-    def _calculate_xirr(self, equity_curve, initial_capital):
-        """Calculate XIRR (Extended Internal Rate of Return)"""
+    def calculate_xirr_for_curve(self, curve_data, initial_capital):
+        """Generic XIRR calculation for any portfolio curve"""
         try:
             from scipy.optimize import newton
             
-            # Create cash flows list
+            if curve_data.empty:
+                return 0
+                
+            # Create cash flows
             cash_flows = []
             
             # Initial investment (negative cash flow)
-            start_date = equity_curve['date'].iloc[0]
+            start_date = curve_data['date'].iloc[0]
             cash_flows.append((start_date, -initial_capital))
             
-            # Add any additional cash flows from trades (if you track deposits/withdrawals)
-            # This assumes you might have additional capital deployments tracked in your trades
-            # You can modify this section based on how you track additional investments
-            
-            # For now, we'll use a simplified approach with just initial and final values
-            # If you have intermediate cash flows, add them here:
-            # for trade in self.trades:
-            #     if trade.get('additional_capital'):
-            #         cash_flows.append((trade['date'], -trade['additional_capital']))
-            
-            # Final portfolio value (positive cash flow)
-            end_date = equity_curve['date'].iloc[-1]
-            final_value = equity_curve['portfolio_value'].iloc[-1]
+            # Final value (positive cash flow)
+            end_date = curve_data['date'].iloc[-1]
+            final_value = curve_data['portfolio_value'].iloc[-1]
             cash_flows.append((end_date, final_value))
             
-            # Calculate XIRR using Newton's method
+            # Calculate XIRR
             def npv(rate):
                 return sum([cf / ((1 + rate) ** ((date - cash_flows[0][0]).days / 365.0)) 
                            for (date, cf) in cash_flows])
             
-            def npv_derivative(rate):
-                return sum([(-cf * (date - cash_flows).days / 365.0) / 
-                           ((1 + rate) ** ((date - cash_flows).days / 365.0 + 1))
-                           for (date, cf) in cash_flows])
-            
-            # Use Newton's method with derivative for better convergence
-            xirr_rate = newton(npv, 0.1, fprime=npv_derivative, maxiter=100)
-            
+            xirr_rate = newton(npv, 0.1, maxiter=100)
             return xirr_rate
             
         except Exception as e:
-            # Fallback to CAGR if XIRR calculation fails
-            print(f"XIRR calculation failed: {e}. Using CAGR as fallback.")
-            days = (equity_curve['date'].iloc[-1] - equity_curve['date'].iloc[0]).days
+            # Fallback to CAGR calculation
+            days = (curve_data['date'].iloc[-1] - curve_data['date'].iloc[0]).days
             years = days / 365.25
-            return (equity_curve['portfolio_value'].iloc[-1] / initial_capital) ** (1/years) - 1 if years > 0 else 0
+            return (curve_data['portfolio_value'].iloc[-1] / initial_capital) ** (1/years) - 1 if years > 0 else 0
+
 
 def main():
     st.set_page_config(page_title="NIFTY SHOP Strategy Backtester - 7", layout="wide")
@@ -733,6 +719,7 @@ def main():
                     days = (benchmark_curve['date'].iloc[-1] - benchmark_curve['date'].iloc[0]).days
                     years = days / 365.25
                     benchmark_cagr = (benchmark_final_value / initial_capital) ** (1/years) - 1 if years > 0 else 0
+                    benchmark_xirr = strategy.calculate_xirr_for_curve(benchmark_curve, initial_capital)
                 else:
                     benchmark_return = 0
                     benchmark_cagr = 0
@@ -746,6 +733,7 @@ def main():
                 with col1:
                     st.subheader("🎯 Strategy Performance")
                     st.metric("Total Return", strategy_metrics['Total Return'])
+                    st.metric("XIRR", strategy_metrics['XIRR'])
                     st.metric("CAGR", strategy_metrics['CAGR'])
                     st.metric("Final Value", strategy_metrics['Final Value'])
                     st.metric("Win Rate", strategy_metrics['Win Rate'])
@@ -754,6 +742,7 @@ def main():
                 with col2:
                     st.subheader("📈 Fair Benchmark (NIFTY 50)")
                     st.metric("Total Return", f"{benchmark_return:.2%}")
+                    st.metric("XIRR", f"{benchmark_xirr:.2%}")
                     st.metric("CAGR", f"{benchmark_cagr:.2%}")
                     st.metric("Final Value", f"₹{benchmark_final_value:,.0f}")
                     st.metric("Win Rate", "N/A")
@@ -762,10 +751,13 @@ def main():
                 with col3:
                     st.subheader("🏆 Strategy vs Benchmark")
                     excess_return = float(strategy_metrics['Total Return'].strip('%')) - (benchmark_return * 100)
+                    excess_xirr = float(strategy_metrics['XIRR'].strip('%')) - (benchmark_xirr * 100)
                     excess_cagr = float(strategy_metrics['CAGR'].strip('%')) - (benchmark_cagr * 100)
                     
                     st.metric("Excess Return", f"{excess_return:.2f}%", 
                              f"{excess_return:.2f}%")
+                    st.metric("Excess XIRR", f"{excess_xirr:.2f}%",
+                             f"{excess_xirr:.2f}%")
                     st.metric("Excess CAGR", f"{excess_cagr:.2f}%",
                              f"{excess_cagr:.2f}%")
                     st.metric("Total Trades", strategy_metrics['Total Trades'])
