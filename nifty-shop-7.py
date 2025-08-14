@@ -25,10 +25,11 @@ class NiftyShopStrategy:
     Implementation of the NIFTY SHOP Strategy as explained by FabTrader
     """
     
-    def __init__(self, capital_per_trade=15000, target_percent=9.0, stop_loss_percent=9.0):
+    def __init__(self, capital_per_trade=15000, target_percent=9.0, stop_loss_percent=9.0,only_stocks=false):
         self.capital_per_trade = capital_per_trade
         self.target_percent = target_percent / 100  # Convert to decimal
         self.stop_loss_percent = stop_loss_percent / 100  # Convert to decimal
+        self.only_stocks = only_stocks
         self.portfolio = {}
         self.cash = 0
         self.cash_deployed = 0
@@ -90,6 +91,23 @@ class NiftyShopStrategy:
             # International Diversification
             'HNGSNGBEES.NS' #HNGS NGB BeES ETF
         ]
+        
+    self.stocks = [
+        "ADANIENT.NS", "ADANIPORTS.NS", "APOLLOHOSP.NS", "ASIANPAINT.NS", "AXISBANK.NS",
+        "BAJAJ-AUTO.NS", "BAJFINANCE.NS", "BAJAJFINSV.NS", "BEL.NS", "BHARTIARTL.NS",
+        "CIPLA.NS", "COALINDIA.NS", "DRREDDY.NS", "EICHERMOT.NS", "ETERNAL.NS",
+        "GRASIM.NS", "HCLTECH.NS", "HDFCBANK.NS", "HDFCLIFE.NS", "HEROMOTOCO.NS",
+        "HINDALCO.NS", "HINDUNILVR.NS", "ICICIBANK.NS", "INDUSINDBK.NS", "INFY.NS",
+        "ITC.NS", "JIOFIN.NS", "JSWSTEEL.NS", "KOTAKBANK.NS", "LT.NS",
+        "M&M.NS", "MARUTI.NS", "NESTLEIND.NS", "NTPC.NS", "ONGC.NS",
+        "POWERGRID.NS", "RELIANCE.NS", "SBILIFE.NS", "SHRIRAMFIN.NS", "SBIN.NS",
+        "SUNPHARMA.NS", "TCS.NS", "TATACONSUM.NS", "TATAMOTORS.NS", "TATASTEEL.NS",
+        "TECHM.NS", "TITAN.NS", "TRENT.NS", "ULTRACEMCO.NS", "WIPRO.NS",
+        "CDSL.NS", "IONEXCHANG.NS", "DEEPAKNTR.NS", "PERSISTENT.NS", "KPITTECH.NS",
+        "AUBANK.NS", "HAL.NS", "NUVAMA.NS", "WAAREEENER.NS", "ASTRAL.NS",
+        "SONACOMS.NS", "DIVISLAB.NS", "CAMS.NS", "POLYCAB.NS", "PRAJIND.NS",
+        "CRISIL.NS", "TATAPOWER.NS", "DMART.NS", "IDFCFIRSTB.NS"
+    ]
 
     def get_nifty50_data(self, start_date, end_date):
         """Download historical data for selected ETFs"""
@@ -98,8 +116,8 @@ class NiftyShopStrategy:
         
         st.write("📊 Downloading ETF data...")
         progress_bar = st.progress(0)
-        
-        for i, symbol in enumerate(self.selected_etfs):
+        symbols = only_stocks ? self.stocks : self.selected_etfs
+        for i, symbol in enumerate(symbols):
             try:
                 ticker_data = yf.download(symbol, start=start_date, end=end_date, progress=False)
                 if not ticker_data.empty and len(ticker_data) > 25:
@@ -107,7 +125,7 @@ class NiftyShopStrategy:
                         ticker_data.columns = ticker_data.columns.droplevel(1)
                     data[symbol] = ticker_data
                     successful_downloads.append(symbol)
-                progress_bar.progress((i + 1) / len(self.selected_etfs))
+                progress_bar.progress((i + 1) / len(symbols))
             except Exception as e:
                 st.warning(f"Failed to download {symbol}: {str(e)}")
                 continue
@@ -645,6 +663,7 @@ def main():
     capital_per_trade = st.sidebar.number_input("Capital per Trade (₹)", value=10000, step=1000)
     target_percent = st.sidebar.number_input("Target Profit (%)", value=9.00, step=0.1)
     stop_loss_percent = st.sidebar.number_input("Stop Loss (%)", value=1000.00, step=0.1)
+    only_stocks = st.sidebar.checkbox("Only Stocks", value=false)
     # averaging_threshold = st.sidebar.number_input("Averaging Threshold (%)", value=3.50, step=0.1)
     
     if st.sidebar.button("🚀 Run Backtest", type="primary"):
@@ -653,6 +672,7 @@ def main():
                 capital_per_trade=capital_per_trade,
                 target_percent=target_percent,
                 stop_loss_percent=stop_loss_percent,
+                only_stocks=only_stocks,
                 #averaging_threshold=averaging_threshold
             )
             
