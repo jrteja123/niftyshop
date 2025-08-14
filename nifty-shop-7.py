@@ -25,7 +25,7 @@ class NiftyShopStrategy:
     Implementation of the NIFTY SHOP Strategy as explained by FabTrader
     """
     
-    def __init__(self, capital_per_trade=15000, target_percent=9.0, stop_loss_percent=9.0,only_stocks=false):
+    def __init__(self, capital_per_trade=15000, target_percent=9.0, stop_loss_percent=9.0,only_stocks=False):
         self.capital_per_trade = capital_per_trade
         self.target_percent = target_percent / 100  # Convert to decimal
         self.stop_loss_percent = stop_loss_percent / 100  # Convert to decimal
@@ -663,7 +663,7 @@ def main():
     capital_per_trade = st.sidebar.number_input("Capital per Trade (₹)", value=10000, step=1000)
     target_percent = st.sidebar.number_input("Target Profit (%)", value=9.00, step=0.1)
     stop_loss_percent = st.sidebar.number_input("Stop Loss (%)", value=1000.00, step=0.1)
-    only_stocks = st.sidebar.checkbox("Only Stocks", value=false)
+    only_stocks = st.sidebar.checkbox("Only Stocks", value=False)
     # averaging_threshold = st.sidebar.number_input("Averaging Threshold (%)", value=3.50, step=0.1)
     
     if st.sidebar.button("🚀 Run Backtest", type="primary"):
