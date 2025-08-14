@@ -116,7 +116,7 @@ class NiftyShopStrategy:
         
         st.write("📊 Downloading ETF data...")
         progress_bar = st.progress(0)
-        symbols = only_stocks ? self.stocks : self.selected_etfs
+        symbols = self.stocks if self.only_stocks else self.selected_etfs
         for i, symbol in enumerate(symbols):
             try:
                 ticker_data = yf.download(symbol, start=start_date, end=end_date, progress=False)
