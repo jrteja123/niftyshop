@@ -2,8 +2,8 @@ yfinance==0.2.65
 streamlit
 pandas
 plotly
-pandas_ta==0.3.14b0
+pandas_ta
 ta
 setuptools
-numpy==2.2.6
+numpy>=2.2.6
 scipy==1.16.1
