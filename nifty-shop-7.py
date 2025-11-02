@@ -407,7 +407,12 @@ class NiftyShopStrategy:
 
                         #profit_last_buy = (current_price - position['last_buy_price']) / position['last_buy_price']
                         #rsi = signals[symbol].loc[date, 'RSI_14']   
-                        
+                        # rsi = signals[symbol].loc[date, 'RSI_14']
+                        # prev_rsi = signals[symbol].loc[date - timedelta(days=1), 'RSI_14']
+                        # prev2_rsi = signals[symbol].loc[date - timedelta(days=2), 'RSI_14']
+                        # prev4_rsi = signals[symbol].loc[date - timedelta(days=4), 'RSI_14']
+                        # and rsi < prev_rsi and prev2_rsi < prev4_rsi
+
                         if (profit_pct >= self.target_percent and current_price < ema49) or (profit_pct <= -self.stop_loss_percent):
                             # Sell the position
                             sell_value = position['quantity'] * current_price
@@ -689,7 +694,7 @@ def main():
     start_date = st.sidebar.date_input("Start Date", datetime.now() - timedelta(days=1097))
     end_date = st.sidebar.date_input("End Date", datetime.now())
     
-    initial_capital = st.sidebar.number_input("Initial Capital (₹)", value=1350000, step=10000)
+    initial_capital = st.sidebar.number_input("Initial Capital (₹)", value=2000000, step=10000)
     capital_per_trade = st.sidebar.number_input("Capital per Trade (₹)", value=10000, step=1000)
     target_percent = st.sidebar.number_input("Target Profit (%)", value=9.00, step=0.1)
     stop_loss_percent = st.sidebar.number_input("Stop Loss (%)", value=1000.00, step=0.1)
