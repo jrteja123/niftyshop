@@ -64,13 +64,13 @@ end_date = st.sidebar.date_input(
 universe_name = st.sidebar.selectbox(
     "Universe",
     options=list(UNIVERSE_CONFIG.keys()),
-    index=2,  # default Nifty 500
+    index=1,  # default Nifty 500
 )
 
 rebalance_mode = st.sidebar.selectbox(
     "Rebalance schedule",
     options=["Every N days", "Monthly on day", "Weekly on day"],
-    index=0,
+    index=1,
     help="How rebalance dates are picked. 'Every N days' = legacy interval; "
          "'Monthly on day' = fixed day-of-month; 'Weekly on day' = fixed weekday "
          "(snaps forward on market holidays).",
@@ -87,7 +87,7 @@ if rebalance_mode == "Every N days":
 elif rebalance_mode == "Monthly on day":
     rebalance_day_of_month = st.sidebar.number_input(
         "Day of month",
-        min_value=1, max_value=31, value=2, step=1,
+        min_value=1, max_value=31, value=25, step=1,
         help="Rebalance on this day each month. Snaps to next trading day on "
              "holidays/weekends. Falls back to month's last trading day if "
              "the day-of-month is past the end of a short month.",
@@ -155,7 +155,7 @@ with st.sidebar.expander("Advanced Parameters"):
     sector_cap = st.number_input("Max positions per sector", 1, 100, 5, 1)
     disable_trimming = st.checkbox(
         "Disable trimming (let winners run)",
-        value=False,
+        value=True,
         help="If checked, the strategy never sells shares of a name that is still in the top-20 target. "
              "Reduces trade count and STCG. Allows portfolio to drift top-heavy over time.",
     )
