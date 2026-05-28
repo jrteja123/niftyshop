@@ -69,15 +69,26 @@ universe_name = st.sidebar.selectbox(
 
 rebalance_mode = st.sidebar.selectbox(
     "Rebalance schedule",
-    options=["Every N days", "Monthly on day", "Weekly on day"],
+    options=[
+        "Every N days",
+        "Monthly on day",
+        "Weekly on day",
+        "Last trading day of month",
+        "Last weekday of month",
+    ],
     index=1,
     help="How rebalance dates are picked. 'Every N days' = legacy interval; "
          "'Monthly on day' = fixed day-of-month; 'Weekly on day' = fixed weekday "
-         "(snaps forward on market holidays).",
+         "(snaps forward on market holidays); 'Last trading day of month' = "
+         "fires on the final NSE trading session each month; 'Last weekday of "
+         "month' = fires on the last occurrence of the chosen weekday each month.",
 )
 rebalance_days = 25
 rebalance_day_of_month: int | None = None
 rebalance_day_of_week: int | None = None
+rebalance_last_weekday: int | None = None
+rebalance_last_trading_day: bool = False
+_dow_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 if rebalance_mode == "Every N days":
     rebalance_days = st.sidebar.number_input(
         "Rebalance days (calendar)",
@@ -93,7 +104,6 @@ elif rebalance_mode == "Monthly on day":
              "the day-of-month is past the end of a short month.",
     )
 elif rebalance_mode == "Weekly on day":
-    _dow_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     _selected_dow = st.sidebar.selectbox(
         "Day of week",
         options=_dow_names,
@@ -107,6 +117,22 @@ elif rebalance_mode == "Weekly on day":
         "Use with caution.",
         icon="⚠️",
     )
+elif rebalance_mode == "Last trading day of month":
+    rebalance_last_trading_day = True
+    st.sidebar.caption(
+        "📅 Fires on the final NSE trading session of each calendar month. "
+        "Most defensible monthly schedule — no DOM cherry-picking risk."
+    )
+elif rebalance_mode == "Last weekday of month":
+    _selected_last_dow = st.sidebar.selectbox(
+        "Weekday",
+        options=_dow_names,
+        index=4,  # default last Friday of month
+        help="Picks the LAST occurrence of this weekday in each month. "
+             "Falls back to the month's last trading day if no such weekday "
+             "traded that month.",
+    )
+    rebalance_last_weekday = _dow_names.index(_selected_last_dow)
 
 capital = st.sidebar.number_input(
     "Initial Capital (₹)",
@@ -217,6 +243,8 @@ cfg = StrategyConfig(
     rebalance_days=int(rebalance_days),
     rebalance_day_of_month=rebalance_day_of_month,
     rebalance_day_of_week=rebalance_day_of_week,
+    rebalance_last_weekday=rebalance_last_weekday,
+    rebalance_last_trading_day=rebalance_last_trading_day,
     cost_round_trip=float(cost_pct),
     momentum_lookback_td=int(mom_lookback),
     momentum_skip_td=int(mom_skip),
