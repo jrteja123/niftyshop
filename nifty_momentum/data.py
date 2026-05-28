@@ -490,6 +490,27 @@ def get_benchmark(
         windowed = combined_s[(combined_s.index >= start_ts) & (combined_s.index <= end_ts)]
         return windowed, ticker
 
+    # Build a more diagnostic error. The common failure mode in seed-only mode
+    # is "start_date is after every ticker's seed_max" — tell the user that
+    # specifically instead of vaguely "no data".
+    if use_seed_only and not seed.empty:
+        ticker_maxes = (
+            seed[seed["ticker"].isin(tried)]
+            .groupby("ticker")["date"].max()
+        )
+        if not ticker_maxes.empty:
+            latest = ticker_maxes.max()
+            ticker_lines = "\n  ".join(
+                f"{tk}: seed has data through {dt.date()}" for tk, dt in ticker_maxes.items()
+            )
+            raise RuntimeError(
+                f"No benchmark data in your requested window [{start_ts.date()} -> {end_ts.date()}] "
+                f"for {universe_name}.\n  {ticker_lines}\n"
+                f"Latest seed date across all tried tickers: {latest.date()}.\n"
+                f"Fix: pick a Start Date <= {latest.date()}, OR untick 'Use seed only' so the app "
+                f"can fetch the missing recent dates from yfinance."
+            )
+
     raise RuntimeError(
         f"No benchmark data fetched for {universe_name}. "
         f"Tried tickers: {tried}. "
