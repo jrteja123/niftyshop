@@ -35,7 +35,7 @@ def highlight_core_etfs(row):
     """Pandas Styler: highlight rows where Symbol is in the core 10-ETF list."""
     sym = str(row.get('symbol', row.get('Symbol', ''))).replace('.NS', '').strip()
     if sym in HIGHLIGHT_ETFS:
-        return ['color: #fff; background-color: purple; font-weight: 600'] * len(row)
+        return ['color: #fff; background-color: purple; font-weight: 600; color:#fff'] * len(row)
     return [''] * len(row)
 
 
@@ -134,12 +134,13 @@ class NiftyShopStrategy:
             # 'MAFANG.NS',    # FANG+ ETF
             'MON100.NS',      # Motilal Oswal NASDAQ 100 ETF
             'GOLDBEES.NS',    # Gold BeES - Commodity exposure
-            'SILVERBEES.NS',  # Silver BeES
-            'SENSEXIETF.NS',  # Sensex ETF
-            'BSE500IETF.NS',  # ICICI BSE 500 ETF
+            'MOM30IETF.NS',   # MOM 30 ETF
         ]
 
         self.selected_etfs = self.core_etfs + [
+            'SILVERBEES.NS',  # Silver BeES
+            'SENSEXIETF.NS',  # Sensex ETF
+            'BSE500IETF.NS',  # ICICI BSE 500 ETF
             'TOP100CASE.NS',
             'DIVOPPBEES.NS',  # Dividend Opportunities BeES
             'FMCGIETF.NS',    # FMCG ETF
@@ -147,7 +148,6 @@ class NiftyShopStrategy:
 
             # Smart Beta / Factor-Based ETFs
             'SBIETFQLTY.NS',  # SBI Nifty 200 Quality 30 ETF
-            'MOM30IETF.NS',   # MOM 30 ETF
             'VAL30IETF.NS',   # Value 30 ETF
             'LOWVOLIETF.NS',  # Low Volatility 30 ETF
             # 'ALPHAETF.NS',
@@ -175,7 +175,8 @@ class NiftyShopStrategy:
             'CIPLA.NS', 'COALINDIA.NS', 'DRREDDY.NS', 'EICHERMOT.NS', 'ETERNAL.NS', 'GRASIM.NS', 'HCLTECH.NS', 'HDFCBANK.NS', 'HDFCLIFE.NS', 'HEROMOTOCO.NS',
             'HINDALCO.NS', 'HINDUNILVR.NS', 'ICICIBANK.NS', 'INDUSINDBK.NS', 'INFY.NS', 'ITC.NS', 'JIOFIN.NS', 'JSWSTEEL.NS', 'KOTAKBANK.NS', 'LT.NS', 'M&M.NS', 'MARUTI.NS', 'NESTLEIND.NS', 'NTPC.NS', 'ONGC.NS',
             'POWERGRID.NS', 'RELIANCE.NS', 'SBILIFE.NS', 'SHRIRAMFIN.NS', 'SBIN.NS', 'SUNPHARMA.NS', 'TCS.NS', 'TATACONSUM.NS', 'TATAMOTORS.NS', 'TATASTEEL.NS', 'TECHM.NS', 'TITAN.NS', 'TRENT.NS', 'ULTRACEMCO.NS', 'WIPRO.NS',
-            'IONEXCHANG.NS', 'DEEPAKNTR.NS', 'PERSISTENT.NS', 'KPITTECH.NS', 'AUBANK.NS', 'HAL.NS', 'NUVAMA.NS', 'WAAREEENER.NS', 'ASTRAL.NS', 'SONACOMS.NS', 'DIVISLAB.NS', 'CAMS.NS', 'POLYCAB.NS', 'PRAJIND.NS', 'CRISIL.NS', 'TATAPOWER.NS', 'DMART.NS', 'IDFCFIRSTB.NS'
+            'IONEXCHANG.NS', 'DEEPAKNTR.NS', 'PERSISTENT.NS', 'KPITTECH.NS', 'AUBANK.NS', 'HAL.NS', 'NUVAMA.NS', 'WAAREEENER.NS', 'ASTRAL.NS', 'SONACOMS.NS', 'DIVISLAB.NS', 'CAMS.NS', 'POLYCAB.NS', 'PRAJIND.NS', 'CRISIL.NS', 'TATAPOWER.NS', 'DMART.NS', 
+            'HAL.NS', 'MAZDOCK.NS', 'DIXON.NS', 'APLAPOLLO.NS', 'CDSL.NS', 'INDIGO.NS'
         ]
 
     def get_nifty50_data(self, start_date, end_date):
@@ -948,8 +949,8 @@ class NiftyShopStrategy:
 
 
 def main():
-    st.set_page_config(page_title="NIFTY SHOP Strategy Backtester - 7", layout="wide")
-    st.title("🏪 NIFTY SHOP Strategy Backtester - 7 Buy RSI Below 35 + On reversal")
+    st.set_page_config(page_title="NIFTY SHOP Strategy - Dip-Buy, Average & Hold", layout="wide")
+    st.title("🏪 NIFTY SHOP Strategy - Dip-Buy, Average & Hold")
     st.markdown("**Based on NIFTY ETF Shop Strategy**")
 
     # Sidebar for parameters
