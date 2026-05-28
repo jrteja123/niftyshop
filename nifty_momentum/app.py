@@ -76,7 +76,7 @@ rebalance_mode = st.sidebar.selectbox(
         "Last trading day of month",
         "Last weekday of month",
     ],
-    index=1,
+    index=3,
     help="How rebalance dates are picked. 'Every N days' = legacy interval; "
          "'Monthly on day' = fixed day-of-month; 'Weekly on day' = fixed weekday "
          "(snaps forward on market holidays); 'Last trading day of month' = "
