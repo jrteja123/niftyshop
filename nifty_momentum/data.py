@@ -27,8 +27,12 @@ warnings.filterwarnings("ignore")
 # CONSTANTS
 # ---------------------------------------------------------------------------
 
-UNIVERSE_DIR = Path("universes")
-CACHE_DIR = Path("cache")
+# Resolve paths against this file's directory, NOT the current working
+# directory. Streamlit Cloud (and any caller that launches the app from a
+# different cwd) would otherwise miss the universes/ and cache/ folders.
+_HERE = Path(__file__).resolve().parent
+UNIVERSE_DIR = _HERE / "universes"
+CACHE_DIR = _HERE / "cache"
 PRICES_SEED = CACHE_DIR / "prices_seed.parquet"
 BENCHMARKS_SEED = CACHE_DIR / "benchmarks_seed.parquet"
 
