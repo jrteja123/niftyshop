@@ -35,7 +35,7 @@ def highlight_core_etfs(row):
     """Pandas Styler: highlight rows where Symbol is in the core 10-ETF list."""
     sym = str(row.get('symbol', row.get('Symbol', ''))).replace('.NS', '').strip()
     if sym in HIGHLIGHT_ETFS:
-        return ['background-color: purple; font-weight: 600'] * len(row)
+        return ['color: #fff; background-color: purple; font-weight: 600'] * len(row)
     return [''] * len(row)
 
 
