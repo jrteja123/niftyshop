@@ -965,9 +965,8 @@ def main():
     hold_core_etfs = st.sidebar.checkbox(
         "Hold core ETFs (never sell)",
         value=True,
-        help="When ON (default): the 12 core ETFs (NIFTYBEES, JUNIORBEES, MID150BEES, "
-             "HDFCSML250, BANKBEES, ITBEES, PHARMABEES, MON100, GOLDBEES, SILVERBEES, "
-             "SENSEXIETF, BSE500IETF) accumulate forever — no take-profit, no stop-loss. "
+        help="When ON (default): the 10 core ETFs (NIFTYBEES, JUNIORBEES, MID150BEES, "
+             "HDFCSML250, BANKBEES, ITBEES, PHARMABEES, MON100, GOLDBEES, MOM30IETF) accumulate forever — no take-profit, no stop-loss. "
              "When OFF: core ETFs are traded like any other position (9% take-profit on "
              "weakness, stop-loss if configured).",
     )
