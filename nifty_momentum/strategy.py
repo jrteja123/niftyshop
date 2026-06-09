@@ -63,6 +63,13 @@ class StrategyConfig:
     # 21 (fast / whippy), 49 (slower trend signal), 100 (very slow).
     daily_ema_exit_period: int | None = None
 
+    # Daily SMA exit (per-position): same idea as EMA exit but uses a simple
+    # moving average. SMA is slower to react than EMA, so exits trigger less
+    # frequently but reflect a more established trend break. Common: 100, 200.
+    # Acts as a per-stock trend-following stop independent of the universe-
+    # wide regime filter. Both EMA and SMA exits can be active simultaneously.
+    daily_sma_exit_period: int | None = None
+
 
 @dataclass
 class BacktestResult:
@@ -316,6 +323,14 @@ def run_backtest(
             span=int(cfg.daily_ema_exit_period), adjust=False
         ).mean()
 
+    # Daily SMA exit pivot — analogous to EMA but with a simple moving avg.
+    # Slower to react; better for "stay until the trend clearly breaks" exits.
+    sma_exit_pivot = None
+    if cfg.daily_sma_exit_period and cfg.daily_sma_exit_period > 0:
+        sma_exit_pivot = daily_close.rolling(
+            window=int(cfg.daily_sma_exit_period), min_periods=int(cfg.daily_sma_exit_period)
+        ).mean()
+
     cash = cfg.capital
     holdings: dict[str, float] = {}
     holdings_log = []
@@ -329,10 +344,12 @@ def run_backtest(
         if rebal_date not in mom_pivot.index:
             continue
 
-        # --- DAILY EMA EXIT: walk inter-rebalance days, exit any held name
-        #     whose close fell below its EMA. Re-entry happens (if at all) at
-        #     the very next rebalance below, via the normal target logic.
-        if ema_pivot is not None and prev_rebal_date is not None:
+        # --- DAILY PER-STOCK EXIT: walk inter-rebalance days, exit any held
+        #     name whose close fell below its EMA and/or SMA. Either trigger
+        #     closes the position; if both are configured, whichever fires
+        #     first wins (EMA is checked first, then SMA on remaining names).
+        #     Re-entry happens (if at all) at the next rebalance below.
+        if (ema_pivot is not None or sma_exit_pivot is not None) and prev_rebal_date is not None:
             interim_mask = (daily_close.index > prev_rebal_date) & (daily_close.index < rebal_date)
             interim_dates = daily_close.index[interim_mask]
             for dt in interim_dates:
@@ -342,14 +359,24 @@ def run_backtest(
                     if sym not in daily_close.columns:
                         continue
                     px = daily_close.loc[dt, sym]
-                    ema = ema_pivot.loc[dt, sym] if sym in ema_pivot.columns else np.nan
-                    if pd.isna(px) or pd.isna(ema) or px >= ema:
+                    if pd.isna(px):
+                        continue
+                    exit_action: str | None = None
+                    if ema_pivot is not None and sym in ema_pivot.columns:
+                        ema = ema_pivot.loc[dt, sym]
+                        if not pd.isna(ema) and px < ema:
+                            exit_action = "EMA_EXIT"
+                    if exit_action is None and sma_exit_pivot is not None and sym in sma_exit_pivot.columns:
+                        sma_val = sma_exit_pivot.loc[dt, sym]
+                        if not pd.isna(sma_val) and px < sma_val:
+                            exit_action = "SMA_EXIT"
+                    if exit_action is None:
                         continue
                     sh = holdings[sym]
                     proceeds = sh * px * (1 - cfg.cost_round_trip / 2)
                     cash += proceeds
                     trade_log.append({
-                        "date": dt, "action": "EMA_EXIT", "symbol": sym,
+                        "date": dt, "action": exit_action, "symbol": sym,
                         "shares": int(sh), "price": float(px), "value": float(sh * px),
                     })
                     del holdings[sym]
@@ -433,9 +460,13 @@ def run_backtest(
                     cost = delta * px * (1 + cfg.cost_round_trip / 2)
                     if cost <= cash:
                         cash -= cost
+                        # BUY = fresh entry (no prior shares); ADD = top-up
+                        # to an existing position. Same cash mechanics; labels
+                        # differ so the trade log reads naturally.
+                        action_label = "BUY" if current_shares == 0 else "ADD"
                         holdings[sym] = target_shares
                         trade_log.append({
-                            "date": rebal_date, "action": "BUY", "symbol": sym,
+                            "date": rebal_date, "action": action_label, "symbol": sym,
                             "shares": int(delta), "price": float(px),
                             "value": float(delta * px),
                         })
@@ -481,11 +512,11 @@ def run_backtest(
         if dt in trades_by_date:
             for _, tr in trades_by_date[dt].iterrows():
                 sym = tr["symbol"]
-                if tr["action"] == "BUY":
+                if tr["action"] in ("BUY", "ADD"):
                     cost = tr["shares"] * tr["price"] * (1 + cfg.cost_round_trip / 2)
                     sim_cash -= cost
                     sim_holdings[sym] = sim_holdings.get(sym, 0) + tr["shares"]
-                elif tr["action"] in ("SELL", "EMA_EXIT"):
+                elif tr["action"] in ("SELL", "EMA_EXIT", "SMA_EXIT"):
                     proceeds = tr["shares"] * tr["price"] * (1 - cfg.cost_round_trip / 2)
                     sim_cash += proceeds
                     sim_holdings.pop(sym, None)
@@ -512,7 +543,7 @@ def run_backtest(
     avg_cost = {}
     if not trades_df.empty:
         for sym, g in trades_df.groupby("symbol"):
-            buys = g[g["action"] == "BUY"]
+            buys = g[g["action"].isin(["BUY", "ADD"])]
             if not buys.empty:
                 first_buy[sym] = buys["date"].min()
                 # weighted avg buy price
