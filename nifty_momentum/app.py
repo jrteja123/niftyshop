@@ -53,7 +53,7 @@ st.sidebar.title("Strategy Parameters")
 
 # Date defaults: 5 years ago to today
 default_end = dt.date.today()
-default_start = default_end - dt.timedelta(days=5 * 365)
+default_start = default_end - dt.timedelta(days=10 * 365)
 
 start_date = st.sidebar.date_input(
     "Start Date", value=default_start,
@@ -206,7 +206,7 @@ with st.sidebar.expander("Advanced Parameters"):
         )
     cost_pct = st.number_input("Round-trip cost (%)",
                                 0.0, 1.0, 0.10, 0.05) / 100
-    min_price = st.number_input("Min stock price (₹)", 1, 1000, 50, 1)
+    min_price = st.number_input("Min stock price (₹)", 1, 1000, 1, 1)
     min_dollar_vol_cr = st.number_input(
         "Min 20-day median ₹ volume (crores)", 0.1, 100.0, 5.0, 0.5,
     )
