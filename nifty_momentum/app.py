@@ -171,7 +171,7 @@ use_seed_only = st.sidebar.checkbox(
 )
 
 with st.sidebar.expander("Advanced Parameters"):
-    n_holdings = st.number_input("Number of holdings", 5, 50, 20, 1)
+    n_holdings = st.number_input("Number of holdings", 5, 50, 15, 1)
     mom_lookback = st.number_input("Momentum lookback (trading days)",
                                     60, 504, 252, 1)
     mom_skip = st.number_input("Momentum skip (trading days)",
