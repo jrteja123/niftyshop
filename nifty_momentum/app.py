@@ -23,10 +23,13 @@ from metrics import (
     yearly_breakdown,
     capital_deployment_series,
     enrich_trades_with_entry_info,
+    rolling_annualized_returns,
+    summarize_rolling_returns,
 )
 from charts import (
     portfolio_value_chart, drawdown_chart,
     capital_deployment_chart, yearly_returns_chart,
+    rolling_returns_timeseries_chart, rolling_returns_distribution_chart,
 )
 
 
@@ -185,6 +188,22 @@ with st.sidebar.expander("Advanced Parameters"):
         help="If checked, the strategy never sells shares of a name that is still in the top-20 target. "
              "Reduces trade count and STCG. Allows portfolio to drift top-heavy over time.",
     )
+    use_daily_sma_exit = st.checkbox(
+        "Daily per-stock SMA exit",
+        value=False,
+        help="Every trading day between rebalances, exit any held position "
+             "whose close falls below its N-day SMA. Acts as a per-stock "
+             "trend-following stop (different from the universe-wide regime "
+             "filter). Sold names can re-enter at the next scheduled rebalance.",
+    )
+    daily_sma_exit_period: int | None = None
+    if use_daily_sma_exit:
+        daily_sma_exit_period = st.number_input(
+            "SMA period (days)",
+            min_value=20, max_value=300, value=100, step=10,
+            help="100 = medium-slow trend signal (recommended). 50 = fast/whippy. "
+                 "200 = very slow, only fires on major breakdowns.",
+        )
     cost_pct = st.number_input("Round-trip cost (%)",
                                 0.0, 1.0, 0.10, 0.05) / 100
     min_price = st.number_input("Min stock price (₹)", 1, 1000, 50, 1)
@@ -255,6 +274,7 @@ cfg = StrategyConfig(
     max_daily_move_pct=float(max_daily_move),
     sector_cap=int(sector_cap),
     disable_trimming=bool(disable_trimming),
+    daily_sma_exit_period=daily_sma_exit_period,
 )
 
 start_str = start_date.strftime("%Y-%m-%d")
@@ -417,6 +437,75 @@ if not yearly.empty:
         st.plotly_chart(yearly_returns_chart(yearly), use_container_width=True)
     with col_b:
         st.dataframe(yearly, hide_index=True, use_container_width=True)
+
+# --- Rolling Returns
+st.header("🔄 Rolling Annualized Returns")
+st.caption(
+    "For every possible start date in the backtest, what annualized return "
+    "would you have earned over the next 1 / 3 / 5 years? This stress-tests "
+    "the headline CAGR — a single CAGR number hides path-dependence."
+)
+
+rolls = {
+    "1Y": rolling_annualized_returns(result.equity, 1.0),
+    "3Y": rolling_annualized_returns(result.equity, 3.0),
+    "5Y": rolling_annualized_returns(result.equity, 5.0),
+}
+bench_rolls_3y = (
+    rolling_annualized_returns(result.benchmark, 3.0)
+    if not result.benchmark.empty
+    else pd.Series(dtype=float)
+)
+
+# Summary table — windows across columns, percentiles down rows
+summary_rows = []
+for label, s in rolls.items():
+    summ = summarize_rolling_returns(s)
+    summ["window"] = label
+    summary_rows.append(summ)
+
+if any(r.get("n_windows", 0) > 0 for r in summary_rows):
+    summ_df = pd.DataFrame(summary_rows)
+    display_cols = ["window", "n_windows", "min", "p10", "p25", "median",
+                    "mean", "p75", "p90", "max", "pct_negative"]
+    display_cols = [c for c in display_cols if c in summ_df.columns]
+    st.dataframe(
+        summ_df[display_cols],
+        hide_index=True, use_container_width=True,
+        column_config={
+            "n_windows": st.column_config.NumberColumn("n_windows", format="%d"),
+            "min": st.column_config.NumberColumn("min", format="%.2f%%"),
+            "p10": st.column_config.NumberColumn("p10", format="%.2f%%"),
+            "p25": st.column_config.NumberColumn("p25", format="%.2f%%"),
+            "median": st.column_config.NumberColumn("median", format="%.2f%%"),
+            "mean": st.column_config.NumberColumn("mean", format="%.2f%%"),
+            "p75": st.column_config.NumberColumn("p75", format="%.2f%%"),
+            "p90": st.column_config.NumberColumn("p90", format="%.2f%%"),
+            "max": st.column_config.NumberColumn("max", format="%.2f%%"),
+            "pct_negative": st.column_config.NumberColumn("% negative", format="%.1f%%"),
+        },
+    )
+
+    st.plotly_chart(
+        rolling_returns_timeseries_chart(rolls, bench_rolls_3y, "3Y"),
+        use_container_width=True,
+    )
+    st.plotly_chart(
+        rolling_returns_distribution_chart(rolls),
+        use_container_width=True,
+    )
+    st.caption(
+        "**Reading the chart:** the time-series line is the annualized return "
+        "you'd have earned if you started on that date and held for the chosen "
+        "window. The histogram shows the *distribution* of those returns — a "
+        "tight bell around a positive median means the strategy is robust to "
+        "start date; a wide spread or fat negative tail means timing matters."
+    )
+else:
+    st.info(
+        "Not enough data for rolling-return windows. Increase the backtest "
+        "date range (need at least ~1 year of data for 1Y windows, etc.)."
+    )
 
 # --- Capital deployment
 st.header("💰 Capital Deployment")
