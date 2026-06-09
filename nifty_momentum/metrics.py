@@ -102,13 +102,13 @@ def enrich_trades_with_entry_info(trades: pd.DataFrame) -> pd.DataFrame:
         dt = row["date"]
         s = state.setdefault(sym, {"shares": 0.0, "cost_basis": 0.0, "entry_date": None})
 
-        if act == "BUY":
+        if act in ("BUY", "ADD"):
             if s["shares"] <= 0:
                 s["entry_date"] = dt
                 s["cost_basis"] = 0.0
             s["cost_basis"] += sh * px
             s["shares"] += sh
-        elif act in ("SELL", "TRIM", "EMA_EXIT"):
+        elif act in ("SELL", "TRIM", "EMA_EXIT", "SMA_EXIT"):
             if s["shares"] > 0:
                 avg_cost = s["cost_basis"] / s["shares"]
                 entry_dates[i] = s["entry_date"]
@@ -116,7 +116,7 @@ def enrich_trades_with_entry_info(trades: pd.DataFrame) -> pd.DataFrame:
                 if s["entry_date"] is not None:
                     holding_days[i] = (dt - s["entry_date"]).days
                 pnl_pcts[i] = round((px / avg_cost - 1) * 100, 2) if avg_cost > 0 else None
-                if act in ("SELL", "EMA_EXIT"):
+                if act in ("SELL", "EMA_EXIT", "SMA_EXIT"):
                     s["shares"] = 0.0
                     s["cost_basis"] = 0.0
                     s["entry_date"] = None
@@ -133,6 +133,52 @@ def enrich_trades_with_entry_info(trades: pd.DataFrame) -> pd.DataFrame:
     df["holding_days"] = holding_days
     df["pnl_pct"] = pnl_pcts
     return df
+
+
+def rolling_annualized_returns(equity: pd.Series, window_years: float) -> pd.Series:
+    """For each day d in `equity`, the annualized return over the next
+    `window_years` calendar years. NaN where the future endpoint falls past
+    the end of the series. Used to answer "if I had started on day d, what
+    would my N-year CAGR have been?".
+    """
+    eq = equity.dropna().sort_index()
+    if eq.empty:
+        return pd.Series(dtype=float)
+    window_days = int(round(window_years * 365.25))
+    out: dict[pd.Timestamp, float] = {}
+    last_date = eq.index.max()
+    for d in eq.index:
+        target = d + pd.Timedelta(days=window_days)
+        if target > last_date:
+            continue
+        future_idx = eq.index[eq.index >= target]
+        if len(future_idx) == 0:
+            continue
+        future_d = future_idx[0]
+        actual_years = (future_d - d).days / 365.25
+        if actual_years <= 0:
+            continue
+        out[d] = ((eq.loc[future_d] / eq.loc[d]) ** (1 / actual_years) - 1) * 100
+    return pd.Series(out).sort_index()
+
+
+def summarize_rolling_returns(s: pd.Series) -> dict:
+    """Percentile + tail-risk summary for a rolling-returns series (in %)."""
+    if s.empty:
+        return {"n_windows": 0}
+    return {
+        "n_windows": len(s),
+        "min": round(float(s.min()), 2),
+        "p10": round(float(s.quantile(0.10)), 2),
+        "p25": round(float(s.quantile(0.25)), 2),
+        "median": round(float(s.median()), 2),
+        "mean": round(float(s.mean()), 2),
+        "p75": round(float(s.quantile(0.75)), 2),
+        "p90": round(float(s.quantile(0.90)), 2),
+        "max": round(float(s.max()), 2),
+        "pct_negative": round(float((s < 0).mean() * 100), 1),
+        "pct_below_bench_proxy_10pct": round(float((s < 10).mean() * 100), 1),
+    }
 
 
 def capital_deployment_series(
