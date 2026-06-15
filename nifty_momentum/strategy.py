@@ -538,18 +538,43 @@ def run_backtest(
     # Build final_positions DataFrame from sim_holdings at end of backtest
     final_positions_rows = []
     last_prices = daily_close.iloc[-1]
-    # Reconstruct first-buy date per symbol
-    first_buy = {}
-    avg_cost = {}
+    # Track CURRENT holding period only — walk trades chronologically and
+    # reset cost basis when a position is fully exited (SELL / EMA_EXIT /
+    # SMA_EXIT). Using all-history avg would compute P&L against trades that
+    # are no longer relevant to the position you currently hold.
+    entry_date: dict[str, pd.Timestamp] = {}
+    avg_cost: dict[str, float] = {}
     if not trades_df.empty:
-        for sym, g in trades_df.groupby("symbol"):
-            buys = g[g["action"].isin(["BUY", "ADD"])]
-            if not buys.empty:
-                first_buy[sym] = buys["date"].min()
-                # weighted avg buy price
-                total_qty = buys["shares"].sum()
-                total_value = (buys["shares"] * buys["price"]).sum()
-                avg_cost[sym] = total_value / total_qty if total_qty > 0 else np.nan
+        for sym, g in trades_df.sort_values("date").groupby("symbol"):
+            cur_shares = 0.0
+            cur_cost_basis = 0.0
+            cur_entry: pd.Timestamp | None = None
+            for _, r in g.iterrows():
+                act = r["action"]
+                sh_tr = float(r["shares"])
+                px_tr = float(r["price"])
+                if act in ("BUY", "ADD"):
+                    if cur_shares <= 0:
+                        cur_entry = r["date"]
+                        cur_cost_basis = 0.0
+                    cur_cost_basis += sh_tr * px_tr
+                    cur_shares += sh_tr
+                elif act in ("SELL", "EMA_EXIT", "SMA_EXIT"):
+                    cur_shares = 0.0
+                    cur_cost_basis = 0.0
+                    cur_entry = None
+                elif act == "TRIM" and cur_shares > 0:
+                    # Scale cost basis proportionally so avg_cost stays stable
+                    avg = cur_cost_basis / cur_shares
+                    cur_cost_basis -= sh_tr * avg
+                    cur_shares -= sh_tr
+                    if cur_shares <= 0:
+                        cur_shares = 0.0
+                        cur_cost_basis = 0.0
+                        cur_entry = None
+            if cur_shares > 0 and cur_entry is not None:
+                entry_date[sym] = cur_entry
+                avg_cost[sym] = cur_cost_basis / cur_shares
 
     for sym, sh in sim_holdings.items():
         if sh <= 0:
@@ -560,7 +585,7 @@ def run_backtest(
             continue
         final_positions_rows.append({
             "symbol": sym,
-            "first_buy_date": first_buy.get(sym),
+            "entry_date": entry_date.get(sym),
             "shares": int(sh),
             "avg_cost": round(ac, 2),
             "current_price": round(cur_px, 2),
