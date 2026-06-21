@@ -95,7 +95,7 @@ _dow_names = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
 if rebalance_mode == "Every N days":
     rebalance_days = st.sidebar.number_input(
         "Rebalance days (calendar)",
-        min_value=7, max_value=90, value=30, step=1,
+        min_value=1, max_value=90, value=30, step=1,
         help="30 = monthly (recommended). Tested: 15-day overfits.",
     )
 elif rebalance_mode == "Monthly on day":
